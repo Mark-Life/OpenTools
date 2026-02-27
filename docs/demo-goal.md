@@ -70,12 +70,45 @@ User: "Create a task called 'Buy groceries' with due date tomorrow"
 - Chat app sends as `Authorization: Bearer <key>`
 - Goal: get the oRPC → OpenAPI → AI SDK tools pipeline working first
 
-### Phase 2: OAuth2 (demo-ready)
-- User clicks "Connect to tasks.app" in chat app
-- Redirects to task tracker login → user approves scoped permissions
-- Chat app receives token, uses for subsequent API calls
-- No API key copy-pasting, user controls permissions, revocable
-- This is the compelling demo: "paste a URL, authorize, LLM interacts with the app"
+### Phase 2: OAuth2 + CIMD (demo-ready)
+
+Use [CIMD (Client ID Metadata Documents)](https://www.ietf.org/archive/id/draft-ietf-oauth-client-id-metadata-document-01.html) for zero-registration OAuth2. Instead of pre-registering the chat app with every task tracker, the chat app hosts a static metadata document and uses its URL as the `client_id`.
+
+**Why CIMD over traditional OAuth2 registration:**
+- No pre-registration step — aligns with OpenTools' zero-config philosophy
+- URLs as identity — symmetric with `/.well-known/llm.json` discovery
+- Stateless for the server — no client registration database needed
+- Same `client_id` works across all connected apps
+- [Adopted by MCP spec (Nov 2025)](https://auth0.com/blog/mcp-november-2025-specification-update/) as the preferred client registration method
+
+**Chat app hosts a CIMD document** (e.g. `https://chat.example.com/.well-known/oauth-client.json`):
+
+```json
+{
+  "client_id": "https://chat.example.com/.well-known/oauth-client.json",
+  "client_name": "OpenTools Chat",
+  "redirect_uris": ["https://chat.example.com/api/auth/callback"],
+  "grant_types": ["authorization_code"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "none"
+}
+```
+
+**Flow:**
+1. User clicks "Connect to tasks.app" in chat app
+2. Chat app sends OAuth2 authorize request with `client_id=https://chat.example.com/.well-known/oauth-client.json`
+3. Task tracker fetches the CIMD document, validates `redirect_uri` match
+4. User logs in, approves scoped permissions
+5. Standard OAuth2 + PKCE completes — chat app receives token
+6. No API key copy-pasting, no pre-registration, user controls permissions, revocable
+
+**Task tracker requirements:**
+- OAuth2 authorization server must support CIMD (fetch + validate client metadata from URL)
+- SSRF protections when fetching CIMD documents (block private IPs, enforce HTTPS, timeouts)
+- Options: implement with [Better Auth](https://www.better-auth.com/), or use a provider that supports CIMD ([WorkOS](https://workos.com/blog/mcp-client-registration-cimd-vs-dcr), [Stytch](https://stytch.com/blog/stytch-supports-cimd/), [Auth0](https://auth0.com/blog/cimd-vs-dcr-mcp-registration/), [Authlete](https://www.authlete.com/developers/cimd/))
+
+**Demo narrative upgrade:**
+> "No registration. No API keys. Just paste a URL, authorize, and your AI interacts with the app."
 
 ## The `opentools-client` SDK
 
@@ -125,9 +158,11 @@ Notifications (SSE/WebSocket for "a task was created on your behalf") are a nice
 - Or build inline in the chat app first, extract later?
 
 ### Auth Details
-- Built-in minimal OAuth2 server in task app vs external auth provider (Better Auth, Auth.js)?
+- CIMD-aware OAuth2 server: build with Better Auth, or use a hosted provider (WorkOS, Stytch, Auth0)?
+- If self-hosted: SSRF protection strategy for CIMD document fetching
 - OAuth2 scope definitions for the task tracker
 - Token storage strategy in the chat app
+- CIMD document hosting: `/.well-known/oauth-client.json` or custom path?
 
 ### AI Provider
 - Which LLM provider/model for the chat app backend? (Likely Anthropic Claude via AI SDK)
