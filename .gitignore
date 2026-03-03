@@ -31,6 +31,9 @@ dist
 # Debug
 npm-debug.log*
 
+# Ralph loop logs
+ralph/logs/
+
 # Misc
 .DS_Store
 *.pem
