@@ -63,3 +63,10 @@
   - `app/openapi.json/route.ts`: generates spec via `OpenAPIGenerator.generate(router, { info })`, then wraps with `withXLlm()`
   - `app/.well-known/llm.json/route.ts`: returns `createDiscoveryResponse({ openapiPath, auth })`
   - Handler `.handle(request)` returns `{ matched, response }` — Next.js route just delegates directly
+
+- TASKS-4: Tasks web UI components
+  - `app/page.tsx`: client component fetching `/api/tasks`, renders Card/Badge/Button from `@workspace/ui`
+  - `components/providers.tsx`: minimal Providers wrapper (no ThemeProvider yet, just a passthrough)
+  - Biome enforces `useDefaultSwitchClause` — always add `default` case even for exhaustive switches
+  - Biome enforces single-line Badge children when short enough
+  - Layout updated to wrap children with `<Providers>`

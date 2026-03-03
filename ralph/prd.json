@@ -134,8 +134,8 @@
       "title": "Tasks web UI components",
       "priority": 8,
       "depends": ["TASKS-3"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/tasks/app/page.tsx renders task list UI fetching from /api/tasks",
         "apps/tasks/components/providers.tsx exists with ThemeProvider or minimal providers",
