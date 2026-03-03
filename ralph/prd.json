@@ -151,8 +151,8 @@
       "title": "Scaffold apps/chat: Next.js + connections + deps",
       "priority": 9,
       "depends": ["AISDK-2"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/chat/package.json exists with deps: ai, @ai-sdk/anthropic, @ai-sdk/react, @opentools/ai-sdk workspace:*, @workspace/ui, next, react, react-dom",
         "apps/chat/next.config.ts mirrors apps/web pattern",

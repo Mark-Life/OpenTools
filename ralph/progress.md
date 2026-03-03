@@ -70,3 +70,11 @@
   - Biome enforces `useDefaultSwitchClause` — always add `default` case even for exhaustive switches
   - Biome enforces single-line Badge children when short enough
   - Layout updated to wrap children with `<Providers>`
+
+- CHAT-1: apps/chat scaffolded (Next.js + connections + deps)
+  - Next.js app at `apps/chat`, port 3002 via `--port` flag in dev script
+  - Mirrors `apps/tasks` pattern: next.config.ts, tsconfig.json, postcss.config.mjs, layout.tsx, providers.tsx
+  - `lib/connections.ts`: in-memory Map + CRUD helpers (listConnections, getConnection, createConnection, updateConnection, deleteConnection)
+  - Connection = `{ id, baseUrl, apiKey, name }` — Biome sorts interface members alphabetically
+  - Deps: ai, @ai-sdk/anthropic, @ai-sdk/react, @opentools/ai-sdk workspace:*, @workspace/ui, next, react, react-dom
+  - Biome auto-fixes: block statements required for if-return, CSS class sorting in JSX
