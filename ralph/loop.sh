@@ -7,7 +7,7 @@ cd "$REPO_DIR"
 
 MAX_ITERATIONS=25
 MAX_ATTEMPTS=3
-BUDGET_PER_ITERATION=5
+BUDGET_PER_ITERATION=10
 
 # Create logs dir
 mkdir -p ralph/logs
