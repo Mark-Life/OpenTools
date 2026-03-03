@@ -78,3 +78,12 @@
   - Connection = `{ id, baseUrl, apiKey, name }` — Biome sorts interface members alphabetically
   - Deps: ai, @ai-sdk/anthropic, @ai-sdk/react, @opentools/ai-sdk workspace:*, @workspace/ui, next, react, react-dom
   - Biome auto-fixes: block statements required for if-return, CSS class sorting in JSX
+
+- CHAT-2: Chat API route + settings page
+  - `lib/tools.ts`: `loadAllTools(connections)` composes `createToolsFromUrl` per connection, merges tools/metadata
+  - Biome: don't use `async` on map callbacks that just return a promise (no `await` inside) — triggers `useAwait`
+  - `app/api/chat/route.ts`: POST handler with `streamText`, `anthropic("claude-sonnet-4-20250514")`, tools from connections
+  - Cast `messages` and `tools` via `as Parameters<typeof streamText>[0]["messages"]` to satisfy AI SDK overloads
+  - `app/api/connections/route.ts`: GET lists, POST creates (delegates to `lib/connections.ts`)
+  - `app/settings/page.tsx`: client component with connect form (name, baseUrl, apiKey) + connection list with disconnect
+  - Biome: sorts JSX attributes alphabetically; use `!(a && b)` not `!a || !b` for simplified logic

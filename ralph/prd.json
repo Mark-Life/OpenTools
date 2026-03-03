@@ -169,8 +169,8 @@
       "title": "Chat API route + settings page",
       "priority": 10,
       "depends": ["CHAT-1"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/chat/app/api/chat/route.ts exports POST handler using streamText with anthropic model and tools from connections",
         "apps/chat/lib/tools.ts exports loadAllTools(connections) using createToolsFromUrl from @opentools/ai-sdk/client",
