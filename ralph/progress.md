@@ -31,3 +31,13 @@
   - `parseSpec(specUrl)` fetches OpenAPI spec, extracts `x-llm` root + `ParsedOperation[]`
   - Biome cognitive complexity limit is 20 — break complex functions into small helpers (collectParams, mergeBodySchema, buildSchema, etc.)
   - Package exports: `./discovery`, `./spec-parser` (more will be added in AISDK-2)
+
+- AISDK-2: @opentools/ai-sdk tool-generator + client entry
+  - `operationsToTools(operations, opts)` returns `{ tools, metadata }` using AI SDK `tool()` + `jsonSchema()`
+  - `jsonSchema()` returns `Schema<unknown>` — execute args type is `unknown`, needs cast to `Record<string, unknown>`
+  - `tool()` return type uses overloads; use `Record<string, Tool>` (not `ReturnType<typeof tool>`) for the tools record
+  - `ToolMetadata` must be exported (not just interface) so `client.ts` can reference it in inferred return type
+  - Biome enforces spaces (not tabs), sorted imports (scoped packages before bare specifiers)
+  - `createToolsFromUrl(baseUrl, opts)` composes discovery → parseSpec → operationsToTools
+  - Package exports now: `./client`, `./discovery`, `./spec-parser`, `./tool-generator`
+  - `ai@^4` installed (v4.3.19) — `tool()` and `jsonSchema()` available from main `ai` export

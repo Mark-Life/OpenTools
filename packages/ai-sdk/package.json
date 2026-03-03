@@ -4,11 +4,14 @@
   "type": "module",
   "private": true,
   "exports": {
+    "./client": "./src/client.ts",
     "./discovery": "./src/discovery.ts",
-    "./spec-parser": "./src/spec-parser.ts"
+    "./spec-parser": "./src/spec-parser.ts",
+    "./tool-generator": "./src/tool-generator.ts"
   },
   "dependencies": {
-    "@opentools/spec": "workspace:*"
+    "@opentools/spec": "workspace:*",
+    "ai": "^4"
   },
   "devDependencies": {
     "@workspace/typescript-config": "workspace:*",

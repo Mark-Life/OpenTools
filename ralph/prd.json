@@ -59,8 +59,8 @@
       "title": "ai-sdk tool-generator + client entry",
       "priority": 4,
       "depends": ["AISDK-1"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "packages/ai-sdk/src/tool-generator.ts exports operationsToTools(operations, opts) returning { tools, metadata }",
         "Uses AI SDK tool() + jsonSchema() — passes raw JSON Schema, no Zod conversion",
