@@ -96,3 +96,10 @@
   - `addToolResult` on useChat is the approval mechanism — passes `{ approved: true }` or `{ approved: false, error }` as tool result
   - Message parts API: iterate `message.parts` for `text`, `tool-invocation` types; `toolInvocation.state` is `partial-call`, `call`, or `result`
   - Biome auto-sorts imports: `@ai-sdk/*` before `@workspace/*` before `ai` before relative
+
+- INTEG-1: Full build verification
+  - `.js` relative imports in packages break Turbopack build — use self-referencing package imports instead (e.g. `@opentools/ai-sdk/discovery` instead of `./discovery.js`)
+  - Self-referencing imports require `rootDir: "./src"` in package tsconfig for TypeScript NodeNext resolution
+  - `transpilePackages` in next.config.ts needed for workspace packages with `.js` imports consumed by Next.js apps
+  - `OpenAPIHandler.handle()` returns `{ matched, response }` — Next.js route handlers must extract `.response` to return bare `Response`
+  - Next.js 16 build typecheck is stricter than `tsc --noEmit` — validates route handler return types against `RouteHandlerConfig`

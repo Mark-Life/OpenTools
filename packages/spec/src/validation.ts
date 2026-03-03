@@ -1,5 +1,9 @@
-import { DEFAULT_APPROVAL } from "./constants.js";
-import type { ApprovalLevel, XLlmOperation, XLlmRoot } from "./types.js";
+import { DEFAULT_APPROVAL } from "@opentools/spec/constants";
+import type {
+  ApprovalLevel,
+  XLlmOperation,
+  XLlmRoot,
+} from "@opentools/spec/types";
 
 /** Type guard: checks if a value is a valid XLlmOperation */
 export const isXLlmOperation = (value: unknown): value is XLlmOperation => {

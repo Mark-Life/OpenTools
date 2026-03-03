@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@workspace/ui"],
+  transpilePackages: ["@workspace/ui", "@opentools/ai-sdk", "@opentools/spec"],
   reactCompiler: true,
   typedRoutes: true,
   experimental: {

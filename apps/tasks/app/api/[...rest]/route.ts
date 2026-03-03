@@ -6,7 +6,10 @@ const handler = new OpenAPIHandler(router, {
   plugins: [new ZodSmartCoercionPlugin()],
 });
 
-const handleRequest = (request: Request) => handler.handle(request);
+const handleRequest = async (request: Request) => {
+  const { response } = await handler.handle(request);
+  return response;
+};
 
 export const GET = handleRequest;
 export const POST = handleRequest;

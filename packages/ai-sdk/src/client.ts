@@ -1,6 +1,6 @@
-import { discoverLlm } from "./discovery.js";
-import { parseSpec } from "./spec-parser.js";
-import { operationsToTools } from "./tool-generator.js";
+import { discoverLlm } from "@opentools/ai-sdk/discovery";
+import { parseSpec } from "@opentools/ai-sdk/spec-parser";
+import { operationsToTools } from "@opentools/ai-sdk/tool-generator";
 
 interface CreateToolsOpts {
   headers?: Record<string, string>;

@@ -203,8 +203,8 @@
       "title": "Full build verification",
       "priority": 12,
       "depends": ["TASKS-4", "CHAT-3"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 1,
       "acceptance": [
         "bun install succeeds with no errors",
         "bunx tsc --noEmit -p packages/spec/tsconfig.json passes",
