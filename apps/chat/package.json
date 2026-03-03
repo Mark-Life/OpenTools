@@ -16,7 +16,7 @@
     "@ai-sdk/react": "^3.0.110",
     "@opentools/ai-sdk": "workspace:*",
     "@workspace/ui": "workspace:*",
-    "ai": "^6.0.108",
+    "ai": "^6.0.111",
     "next": "16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
