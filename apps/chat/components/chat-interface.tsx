@@ -1,14 +1,33 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { Badge } from "@workspace/ui/components/badge";
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+} from "@workspace/ui/components/ai-elements/conversation";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "@workspace/ui/components/ai-elements/message";
+import {
+  PromptInput,
+  PromptInputFooter,
+  PromptInputSubmit,
+  PromptInputTextarea,
+} from "@workspace/ui/components/ai-elements/prompt-input";
+import { Shimmer } from "@workspace/ui/components/ai-elements/shimmer";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from "@workspace/ui/components/ai-elements/tool";
 import { Button } from "@workspace/ui/components/button";
-import { Card } from "@workspace/ui/components/card";
-import { Input } from "@workspace/ui/components/input";
-import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import type { UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
-import { useState } from "react";
 import { ToolApproval } from "./tool-approval";
 
 type ToolPart = Extract<UIMessage["parts"][number], { toolCallId: string }>;
@@ -17,18 +36,18 @@ type ToolPart = Extract<UIMessage["parts"][number], { toolCallId: string }>;
 const isToolPart = (part: UIMessage["parts"][number]): part is ToolPart =>
   "toolCallId" in part;
 
-const TOOL_PREFIX = /^tool-/;
-
-/** Extracts the tool name from a tool part type string */
-const getToolName = (part: ToolPart) => part.type.replace(TOOL_PREFIX, "");
-
 type AddToolOutputFn = (params: {
   tool: string;
   toolCallId: string;
   output: unknown;
 }) => void;
 
-/** Renders a single tool invocation (call or result) inline */
+const TOOL_PREFIX = /^tool-/;
+
+/** Extracts the tool name from a tool part type string */
+const getToolName = (part: ToolPart) => part.type.replace(TOOL_PREFIX, "");
+
+/** Renders a single tool invocation using AI element components */
 const ToolInvocationDisplay = ({
   addToolOutput,
   part,
@@ -36,111 +55,38 @@ const ToolInvocationDisplay = ({
   addToolOutput: AddToolOutputFn;
   part: ToolPart;
 }) => {
-  const toolName = getToolName(part);
-
   if (part.state === "input-available") {
     return (
       <ToolApproval
         addToolOutput={addToolOutput}
         part={part}
-        toolName={toolName}
+        toolName={getToolName(part)}
       />
     );
   }
 
-  if (part.state === "input-streaming") {
-    return (
-      <div className="my-1 flex items-center gap-2 text-muted-foreground text-sm">
-        <Badge variant="secondary">Calling</Badge>
-        <span className="font-mono">{toolName}</span>
-      </div>
-    );
-  }
-
-  if (part.state === "output-available") {
-    return (
-      <Card className="my-2 max-w-md bg-muted/50 p-3">
-        <div className="mb-1 flex items-center gap-2">
-          <Badge variant="secondary">Result</Badge>
-          <span className="font-mono text-sm">{toolName}</span>
-        </div>
-        <pre className="overflow-x-auto rounded bg-background p-2 text-xs">
-          {JSON.stringify(part.output, null, 2)}
-        </pre>
-      </Card>
-    );
-  }
-
-  if (part.state === "output-error") {
-    return (
-      <Card className="my-2 max-w-md bg-destructive/10 p-3">
-        <div className="mb-1 flex items-center gap-2">
-          <Badge variant="destructive">Error</Badge>
-          <span className="font-mono text-sm">{toolName}</span>
-        </div>
-        <pre className="overflow-x-auto rounded bg-background p-2 text-xs">
-          {part.errorText}
-        </pre>
-      </Card>
-    );
-  }
-
-  return null;
-};
-
-/** Renders a single message with text and tool invocation parts */
-const MessageBubble = ({
-  addToolOutput,
-  message,
-}: {
-  addToolOutput: AddToolOutputFn;
-  message: UIMessage;
-}) => {
-  const isUser = message.role === "user";
-
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[80%] rounded-lg px-4 py-2 ${
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
-        }`}
-      >
-        {message.parts.map((part, i) => {
-          const key = `${message.id}-${i}`;
-
-          if (part.type === "text") {
-            if (!part.text) {
-              return null;
-            }
-            return (
-              <p className="whitespace-pre-wrap" key={key}>
-                {part.text}
-              </p>
-            );
-          }
-
-          if (isToolPart(part)) {
-            return (
-              <ToolInvocationDisplay
-                addToolOutput={addToolOutput}
-                key={key}
-                part={part}
-              />
-            );
-          }
-
-          return null;
-        })}
-      </div>
-    </div>
+    <Tool>
+      <ToolHeader
+        state={part.state}
+        title={getToolName(part)}
+        type={part.type as `tool-${string}`}
+      />
+      <ToolContent>
+        {"input" in part && <ToolInput input={part.input} />}
+        {part.state === "output-available" && (
+          <ToolOutput errorText={undefined} output={part.output} />
+        )}
+        {part.state === "output-error" && (
+          <ToolOutput errorText={part.errorText} output={part.output} />
+        )}
+      </ToolContent>
+    </Tool>
   );
 };
 
 /** Main chat interface component using AI SDK useChat hook */
 export function ChatInterface() {
-  const [input, setInput] = useState("");
   const {
     addToolOutput,
     error,
@@ -166,38 +112,49 @@ export function ChatInterface() {
         </a>
       </header>
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <Conversation>
+        <ConversationContent>
           {messages.map((message) => (
-            <MessageBubble
-              addToolOutput={addToolOutput}
-              key={message.id}
-              message={message}
-            />
+            <Message from={message.role} key={message.id}>
+              <MessageContent>
+                {message.parts.map((part, i) => {
+                  const key = `${message.id}-${i}`;
+
+                  if (part.type === "text") {
+                    if (!part.text) {
+                      return null;
+                    }
+                    return (
+                      <MessageResponse key={key}>{part.text}</MessageResponse>
+                    );
+                  }
+
+                  if (isToolPart(part)) {
+                    return (
+                      <ToolInvocationDisplay
+                        addToolOutput={addToolOutput}
+                        key={key}
+                        part={part}
+                      />
+                    );
+                  }
+
+                  return null;
+                })}
+              </MessageContent>
+            </Message>
           ))}
 
           {isLoading && messages.at(-1)?.role !== "assistant" && (
-            <div className="flex justify-start">
-              <div className="rounded-lg bg-muted px-4 py-2 text-muted-foreground">
-                Thinking...
-              </div>
-            </div>
+            <Message from="assistant">
+              <MessageContent>
+                <Shimmer>Thinking...</Shimmer>
+              </MessageContent>
+            </Message>
           )}
-        </div>
-      </ScrollArea>
-
-      {isLoading && (
-        <div className="flex justify-center border-t px-4 py-2">
-          <Button
-            onClick={() => stop()}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            Stop
-          </Button>
-        </div>
-      )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
 
       {error && (
         <div className="flex items-center gap-2 border-t px-4 py-2 text-destructive text-sm">
@@ -213,25 +170,19 @@ export function ChatInterface() {
         </div>
       )}
 
-      <form
-        className="flex gap-2 border-t p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (input.trim()) {
-            sendMessage({ text: input });
-            setInput("");
+      <PromptInput
+        className="border-t p-4"
+        onSubmit={(message) => {
+          if (message.text.trim()) {
+            sendMessage({ text: message.text });
           }
         }}
       >
-        <Input
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message..."
-          value={input}
-        />
-        <Button disabled={isLoading || !input.trim()} type="submit">
-          Send
-        </Button>
-      </form>
+        <PromptInputTextarea placeholder="Type a message..." />
+        <PromptInputFooter className="justify-end">
+          <PromptInputSubmit onStop={stop} status={status} />
+        </PromptInputFooter>
+      </PromptInput>
     </div>
   );
 }
