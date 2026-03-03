@@ -55,3 +55,11 @@
   - oRPC `spec` callback is a real feature: `spec: (s) => ({ ...s, ...xlm({...}) })` — merges x-llm into auto-generated OpenAPI operation
   - Import aliases needed to avoid name collisions: `createTask as createTaskFn` etc. (procedure names match store function names)
   - Biome sorts scoped package imports (`@opentools/*`, `@orpc/*`) before bare specifiers (`zod`), then `@/` path aliases last
+
+- TASKS-3: API routes (catch-all, openapi.json, well-known)
+  - `app/api/[...rest]/route.ts`: `OpenAPIHandler` from `@orpc/openapi/fetch`, `ZodSmartCoercionPlugin` from `@orpc/zod` as plugin
+  - `OpenAPIHandler` does NOT accept `schemaConverters` — only `plugins` (unlike `OpenAPIGenerator`)
+  - `OpenAPIGenerator` from `@orpc/openapi` accepts `schemaConverters: [new ZodToJsonSchemaConverter()]` for spec generation
+  - `app/openapi.json/route.ts`: generates spec via `OpenAPIGenerator.generate(router, { info })`, then wraps with `withXLlm()`
+  - `app/.well-known/llm.json/route.ts`: returns `createDiscoveryResponse({ openapiPath, auth })`
+  - Handler `.handle(request)` returns `{ matched, response }` — Next.js route just delegates directly

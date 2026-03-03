@@ -119,8 +119,8 @@
       "title": "API routes: catch-all, openapi.json, well-known",
       "priority": 7,
       "depends": ["TASKS-2"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/tasks/app/api/[...rest]/route.ts exports GET, POST, PATCH, DELETE handlers using oRPC OpenAPI handler",
         "apps/tasks/app/openapi.json/route.ts exports GET that generates OpenAPI spec with withXLlm() injecting root x-llm metadata",
