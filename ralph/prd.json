@@ -24,8 +24,8 @@
       "title": "Scaffold + implement @opentools/orpc",
       "priority": 2,
       "depends": ["SPEC-1"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "packages/orpc/package.json exists with name @opentools/orpc, type: module, peerDeps: @orpc/server @orpc/openapi, dep on @opentools/spec workspace:*",
         "packages/orpc/tsconfig.json extends @workspace/typescript-config/base.json",

@@ -1,0 +1,22 @@
+{
+  "name": "@opentools/orpc",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./metadata": "./src/metadata.ts",
+    "./spec-enhancer": "./src/spec-enhancer.ts",
+    "./discovery": "./src/discovery.ts"
+  },
+  "dependencies": {
+    "@opentools/spec": "workspace:*"
+  },
+  "peerDependencies": {
+    "@orpc/server": "*",
+    "@orpc/openapi": "*"
+  },
+  "devDependencies": {
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}
