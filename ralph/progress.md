@@ -49,3 +49,9 @@
   - `lib/store.ts`: in-memory Map + CRUD helpers (listTasks, getTask, createTask, updateTask, deleteTask), 3 seeded tasks
   - Zod schema and inferred type share same name (e.g. `export const Task = z.object(...)` + `export type Task = z.infer<typeof Task>`)
   - `postcss.config.mjs` re-exports from `@workspace/ui/postcss.config`
+
+- TASKS-2: oRPC router with 5 procedures + x-llm
+  - `lib/router.ts`: exports `router` object with 5 named procedures (listTasks, getTask, createTask, updateTask, deleteTask)
+  - oRPC `spec` callback is a real feature: `spec: (s) => ({ ...s, ...xlm({...}) })` — merges x-llm into auto-generated OpenAPI operation
+  - Import aliases needed to avoid name collisions: `createTask as createTaskFn` etc. (procedure names match store function names)
+  - Biome sorts scoped package imports (`@opentools/*`, `@orpc/*`) before bare specifiers (`zod`), then `@/` path aliases last

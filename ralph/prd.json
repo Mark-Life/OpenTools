@@ -99,8 +99,8 @@
       "title": "oRPC router with 5 procedures + x-llm",
       "priority": 6,
       "depends": ["TASKS-1"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/tasks/lib/router.ts exports oRPC router with 5 procedures: listTasks, getTask, createTask, updateTask, deleteTask",
         "Each procedure has .route() with method, path, and spec callback using xlm() from @opentools/orpc/metadata",
