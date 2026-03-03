@@ -6,8 +6,8 @@
       "title": "Scaffold + implement @opentools/spec",
       "priority": 1,
       "depends": [],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 1,
       "acceptance": [
         "packages/spec/package.json exists with name @opentools/spec, type: module, workspace:* devDep on @workspace/typescript-config",
         "packages/spec/tsconfig.json extends @workspace/typescript-config/base.json",
