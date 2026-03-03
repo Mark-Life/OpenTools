@@ -25,3 +25,9 @@
   - `withXLlm()` injects root `x-llm` with SPEC_VERSION into OpenAPI doc
   - `createDiscoveryResponse()` uses `Response.json()` (Biome enforces over `new Response(JSON.stringify(...))`)
   - Biome auto-formats single-param arrow fns to inline params (no wrapping parens on separate line)
+
+- AISDK-1: @opentools/ai-sdk discovery + spec-parser
+  - `discoverLlm(baseUrl)` fetches `/.well-known/llm.json`, returns `LlmDiscovery`
+  - `parseSpec(specUrl)` fetches OpenAPI spec, extracts `x-llm` root + `ParsedOperation[]`
+  - Biome cognitive complexity limit is 20 — break complex functions into small helpers (collectParams, mergeBodySchema, buildSchema, etc.)
+  - Package exports: `./discovery`, `./spec-parser` (more will be added in AISDK-2)

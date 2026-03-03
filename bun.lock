@@ -36,6 +36,17 @@
         "typescript": "^5.9.3",
       },
     },
+    "packages/ai-sdk": {
+      "name": "@opentools/ai-sdk",
+      "version": "0.0.0",
+      "dependencies": {
+        "@opentools/spec": "workspace:*",
+      },
+      "devDependencies": {
+        "@workspace/typescript-config": "workspace:*",
+        "typescript": "^5.9.3",
+      },
+    },
     "packages/orpc": {
       "name": "@opentools/orpc",
       "version": "0.0.0",
@@ -260,6 +271,8 @@
     "@next/swc-win32-arm64-msvc": ["@next/swc-win32-arm64-msvc@16.1.6", "", { "os": "win32", "cpu": "arm64" }, "sha512-gQmm8izDTPgs+DCWH22kcDmuUp7NyiJgEl18bcr8irXA5N2m2O+JQIr6f3ct42GOs9c0h8QF3L5SzIxcYAAXXw=="],
 
     "@next/swc-win32-x64-msvc": ["@next/swc-win32-x64-msvc@16.1.6", "", { "os": "win32", "cpu": "x64" }, "sha512-NRfO39AIrzBnixKbjuo2YiYhB6o9d8v/ymU9m/Xk8cyVk+k7XylniXkHwjs4s70wedVffc6bQNbufk5v0xEm0A=="],
+
+    "@opentools/ai-sdk": ["@opentools/ai-sdk@workspace:packages/ai-sdk"],
 
     "@opentools/orpc": ["@opentools/orpc@workspace:packages/orpc"],
 

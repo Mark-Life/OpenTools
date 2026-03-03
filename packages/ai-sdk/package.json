@@ -1,0 +1,17 @@
+{
+  "name": "@opentools/ai-sdk",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "exports": {
+    "./discovery": "./src/discovery.ts",
+    "./spec-parser": "./src/spec-parser.ts"
+  },
+  "dependencies": {
+    "@opentools/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}

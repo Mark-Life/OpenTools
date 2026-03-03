@@ -42,8 +42,8 @@
       "title": "ai-sdk: discovery + spec-parser",
       "priority": 3,
       "depends": ["SPEC-1"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "packages/ai-sdk/package.json exists with name @opentools/ai-sdk, type: module, deps: @opentools/spec workspace:*",
         "packages/ai-sdk/tsconfig.json extends @workspace/typescript-config/base.json",
