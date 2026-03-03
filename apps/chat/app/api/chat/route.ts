@@ -20,7 +20,7 @@ export const POST = async (req: Request) => {
   console.log("[chat] model messages:", modelMessages.length);
 
   const result = streamText({
-    model: google("gemini-3-flash-preview"),
+    model: google("gemini-2.5-flash"),
     system:
       "You are a helpful assistant with access to external tools from connected applications. Use the tools when appropriate to help the user.",
     messages: modelMessages,
