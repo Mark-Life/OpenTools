@@ -7,8 +7,8 @@ const handler = new OpenAPIHandler(router, {
 });
 
 const handleRequest = async (request: Request) => {
-  const { response } = await handler.handle(request);
-  return response;
+  const { response } = await handler.handle(request, { prefix: "/api" });
+  return response ?? new Response("Not Found", { status: 404 });
 };
 
 export const GET = handleRequest;

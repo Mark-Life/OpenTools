@@ -1,22 +1,42 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { streamText } from "ai";
+import { google } from "@ai-sdk/google";
+import {
+  convertToModelMessages,
+  stepCountIs,
+  streamText,
+  type UIMessage,
+} from "ai";
 import { listConnections } from "@/lib/connections";
 import { loadAllTools } from "@/lib/tools";
 
+export const maxDuration = 30;
+
 export const POST = async (req: Request) => {
-  const { messages } = (await req.json()) as { messages: unknown };
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   const connections = listConnections();
   const { tools } = await loadAllTools(connections);
 
+  const modelMessages = await convertToModelMessages(messages);
+  console.log("[chat] model messages:", modelMessages.length);
+
   const result = streamText({
-    model: anthropic("claude-sonnet-4-20250514"),
+    model: google("gemini-3-flash-preview"),
     system:
       "You are a helpful assistant with access to external tools from connected applications. Use the tools when appropriate to help the user.",
-    messages: messages as Parameters<typeof streamText>[0]["messages"],
+    messages: modelMessages,
     tools: tools as Parameters<typeof streamText>[0]["tools"],
-    maxSteps: 10,
+    stopWhen: stepCountIs(10),
+    onFinish: ({ text, finishReason, usage }) => {
+      console.log("[chat] finish:", {
+        finishReason,
+        usage,
+        textLength: text.length,
+      });
+    },
+    onError: ({ error }) => {
+      console.error("[chat] stream error:", error);
+    },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 };

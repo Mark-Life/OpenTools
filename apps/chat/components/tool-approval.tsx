@@ -3,33 +3,41 @@
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import { Card } from "@workspace/ui/components/card";
-import type { ToolInvocation } from "ai";
+import type { UIMessage } from "ai";
+
+type ToolPart = Extract<UIMessage["parts"][number], { toolCallId: string }>;
 
 interface ToolApprovalProps {
-  addToolResult: (params: { toolCallId: string; result: unknown }) => void;
-  toolInvocation: ToolInvocation & { state: "call" };
+  addToolOutput: (params: {
+    tool: string;
+    toolCallId: string;
+    output: unknown;
+  }) => void;
+  part: ToolPart;
+  toolName: string;
 }
 
 /** Renders approve/deny UI for a tool call that needs user approval */
 export function ToolApproval({
-  addToolResult,
-  toolInvocation,
+  addToolOutput,
+  part,
+  toolName,
 }: ToolApprovalProps) {
-  const isDestructive = toolInvocation.toolName
-    .toLowerCase()
-    .includes("delete");
+  const isDestructive = toolName.toLowerCase().includes("delete");
 
   const handleApprove = () => {
-    addToolResult({
-      toolCallId: toolInvocation.toolCallId,
-      result: { approved: true },
+    addToolOutput({
+      tool: toolName,
+      toolCallId: part.toolCallId,
+      output: { approved: true },
     });
   };
 
   const handleDeny = () => {
-    addToolResult({
-      toolCallId: toolInvocation.toolCallId,
-      result: { approved: false, error: "User denied this tool call" },
+    addToolOutput({
+      tool: toolName,
+      toolCallId: part.toolCallId,
+      output: { approved: false, error: "User denied this tool call" },
     });
   };
 
@@ -37,7 +45,7 @@ export function ToolApproval({
     <Card className="my-2 max-w-md border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
       <div className="mb-2 flex items-center gap-2">
         <Badge variant="outline">Tool Call</Badge>
-        <span className="font-mono text-sm">{toolInvocation.toolName}</span>
+        <span className="font-mono text-sm">{toolName}</span>
         {isDestructive && <Badge variant="destructive">Destructive</Badge>}
       </div>
 
@@ -48,7 +56,7 @@ export function ToolApproval({
       )}
 
       <pre className="mb-3 overflow-x-auto rounded bg-muted p-2 text-xs">
-        {JSON.stringify(toolInvocation.args, null, 2)}
+        {JSON.stringify(part.input, null, 2)}
       </pre>
 
       <div className="flex gap-2">

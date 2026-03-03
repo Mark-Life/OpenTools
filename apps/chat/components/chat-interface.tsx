@@ -7,55 +7,93 @@ import { Card } from "@workspace/ui/components/card";
 import { Input } from "@workspace/ui/components/input";
 import { ScrollArea } from "@workspace/ui/components/scroll-area";
 import type { UIMessage } from "ai";
+import { DefaultChatTransport } from "ai";
+import { useState } from "react";
 import { ToolApproval } from "./tool-approval";
+
+type ToolPart = Extract<UIMessage["parts"][number], { toolCallId: string }>;
+
+/** Type guard for tool invocation parts */
+const isToolPart = (part: UIMessage["parts"][number]): part is ToolPart =>
+  "toolCallId" in part;
+
+const TOOL_PREFIX = /^tool-/;
+
+/** Extracts the tool name from a tool part type string */
+const getToolName = (part: ToolPart) => part.type.replace(TOOL_PREFIX, "");
+
+type AddToolOutputFn = (params: {
+  tool: string;
+  toolCallId: string;
+  output: unknown;
+}) => void;
 
 /** Renders a single tool invocation (call or result) inline */
 const ToolInvocationDisplay = ({
-  addToolResult,
+  addToolOutput,
   part,
 }: {
-  addToolResult: (params: { toolCallId: string; result: unknown }) => void;
-  part: UIMessage["parts"][number] & { type: "tool-invocation" };
+  addToolOutput: AddToolOutputFn;
+  part: ToolPart;
 }) => {
-  const { toolInvocation } = part;
+  const toolName = getToolName(part);
 
-  if (toolInvocation.state === "call") {
+  if (part.state === "input-available") {
     return (
       <ToolApproval
-        addToolResult={addToolResult}
-        toolInvocation={toolInvocation}
+        addToolOutput={addToolOutput}
+        part={part}
+        toolName={toolName}
       />
     );
   }
 
-  if (toolInvocation.state === "partial-call") {
+  if (part.state === "input-streaming") {
     return (
       <div className="my-1 flex items-center gap-2 text-muted-foreground text-sm">
         <Badge variant="secondary">Calling</Badge>
-        <span className="font-mono">{toolInvocation.toolName}</span>
+        <span className="font-mono">{toolName}</span>
       </div>
     );
   }
 
-  return (
-    <Card className="my-2 max-w-md bg-muted/50 p-3">
-      <div className="mb-1 flex items-center gap-2">
-        <Badge variant="secondary">Result</Badge>
-        <span className="font-mono text-sm">{toolInvocation.toolName}</span>
-      </div>
-      <pre className="overflow-x-auto rounded bg-background p-2 text-xs">
-        {JSON.stringify(toolInvocation.result, null, 2)}
-      </pre>
-    </Card>
-  );
+  if (part.state === "output-available") {
+    return (
+      <Card className="my-2 max-w-md bg-muted/50 p-3">
+        <div className="mb-1 flex items-center gap-2">
+          <Badge variant="secondary">Result</Badge>
+          <span className="font-mono text-sm">{toolName}</span>
+        </div>
+        <pre className="overflow-x-auto rounded bg-background p-2 text-xs">
+          {JSON.stringify(part.output, null, 2)}
+        </pre>
+      </Card>
+    );
+  }
+
+  if (part.state === "output-error") {
+    return (
+      <Card className="my-2 max-w-md bg-destructive/10 p-3">
+        <div className="mb-1 flex items-center gap-2">
+          <Badge variant="destructive">Error</Badge>
+          <span className="font-mono text-sm">{toolName}</span>
+        </div>
+        <pre className="overflow-x-auto rounded bg-background p-2 text-xs">
+          {part.errorText}
+        </pre>
+      </Card>
+    );
+  }
+
+  return null;
 };
 
 /** Renders a single message with text and tool invocation parts */
 const MessageBubble = ({
-  addToolResult,
+  addToolOutput,
   message,
 }: {
-  addToolResult: (params: { toolCallId: string; result: unknown }) => void;
+  addToolOutput: AddToolOutputFn;
   message: UIMessage;
 }) => {
   const isUser = message.role === "user";
@@ -83,10 +121,10 @@ const MessageBubble = ({
             );
           }
 
-          if (part.type === "tool-invocation") {
+          if (isToolPart(part)) {
             return (
               <ToolInvocationDisplay
-                addToolResult={addToolResult}
+                addToolOutput={addToolOutput}
                 key={key}
                 part={part}
               />
@@ -102,16 +140,17 @@ const MessageBubble = ({
 
 /** Main chat interface component using AI SDK useChat hook */
 export function ChatInterface() {
+  const [input, setInput] = useState("");
   const {
-    addToolResult,
-    handleInputChange,
-    handleSubmit,
-    input,
+    addToolOutput,
+    error,
     messages,
+    regenerate,
+    sendMessage,
     status,
+    stop,
   } = useChat({
-    api: "/api/chat",
-    maxSteps: 10,
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
   });
 
   const isLoading = status === "streaming" || status === "submitted";
@@ -131,7 +170,7 @@ export function ChatInterface() {
         <div className="space-y-4">
           {messages.map((message) => (
             <MessageBubble
-              addToolResult={addToolResult}
+              addToolOutput={addToolOutput}
               key={message.id}
               message={message}
             />
@@ -147,9 +186,45 @@ export function ChatInterface() {
         </div>
       </ScrollArea>
 
-      <form className="flex gap-2 border-t p-4" onSubmit={handleSubmit}>
+      {isLoading && (
+        <div className="flex justify-center border-t px-4 py-2">
+          <Button
+            onClick={() => stop()}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Stop
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center gap-2 border-t px-4 py-2 text-destructive text-sm">
+          <span>Something went wrong.</span>
+          <Button
+            onClick={() => regenerate()}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      <form
+        className="flex gap-2 border-t p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (input.trim()) {
+            sendMessage({ text: input });
+            setInput("");
+          }
+        }}
+      >
         <Input
-          onChange={handleInputChange}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
           value={input}
         />
