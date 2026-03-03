@@ -41,3 +41,11 @@
   - `createToolsFromUrl(baseUrl, opts)` composes discovery → parseSpec → operationsToTools
   - Package exports now: `./client`, `./discovery`, `./spec-parser`, `./tool-generator`
   - `ai@^4` installed (v4.3.19) — `tool()` and `jsonSchema()` available from main `ai` export
+
+- TASKS-1: apps/tasks scaffolded (Next.js + schemas + store)
+  - Next.js app at `apps/tasks`, port 3001 via `--port` flag in dev script
+  - Mirrors `apps/web` pattern: next.config.ts, tsconfig.json, postcss.config.mjs, layout.tsx
+  - `lib/schemas.ts`: Zod schemas for Task, CreateTaskInput, UpdateTaskInput; status is `"todo" | "in-progress" | "done"`
+  - `lib/store.ts`: in-memory Map + CRUD helpers (listTasks, getTask, createTask, updateTask, deleteTask), 3 seeded tasks
+  - Zod schema and inferred type share same name (e.g. `export const Task = z.object(...)` + `export type Task = z.infer<typeof Task>`)
+  - `postcss.config.mjs` re-exports from `@workspace/ui/postcss.config`

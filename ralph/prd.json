@@ -80,8 +80,8 @@
       "title": "Scaffold apps/tasks: Next.js + schemas + store",
       "priority": 5,
       "depends": ["ORPC-1"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/tasks/package.json exists with deps: @orpc/server, @orpc/openapi, @orpc/zod, zod, @workspace/ui, @opentools/orpc workspace:*, next, react, react-dom",
         "apps/tasks/next.config.ts mirrors apps/web pattern (transpilePackages, reactCompiler, typedRoutes)",
