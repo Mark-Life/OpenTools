@@ -1,0 +1,33 @@
+{
+  "name": "chat",
+  "version": "0.0.1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack --port 3002",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.36",
+    "@ai-sdk/react": "^3.0.110",
+    "@opentools/ai-sdk": "workspace:*",
+    "@workspace/ui": "workspace:*",
+    "ai": "^6.0.108",
+    "next": "16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^25.1.0",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "@workspace/typescript-config": "workspace:*",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "typescript": "^5.9.3"
+  }
+}
