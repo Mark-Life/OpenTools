@@ -1,0 +1,220 @@
+{
+  "project": "OpenTools",
+  "stories": [
+    {
+      "id": "SPEC-1",
+      "title": "Scaffold + implement @opentools/spec",
+      "priority": 1,
+      "depends": [],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "packages/spec/package.json exists with name @opentools/spec, type: module, workspace:* devDep on @workspace/typescript-config",
+        "packages/spec/tsconfig.json extends @workspace/typescript-config/base.json",
+        "packages/spec/src/types.ts exports: XLlmRoot, XLlmOperation, LlmDiscovery, ParsedOperation, ApprovalLevel, CostIndicator interfaces/types",
+        "packages/spec/src/constants.ts exports: WELL_KNOWN_PATH = '/.well-known/llm.json', DEFAULT_APPROVAL = 'per-call', SPEC_VERSION = '0.1'",
+        "packages/spec/src/validation.ts exports: isXLlmOperation(), isXLlmRoot() type guards, resolveApproval(op, root) function",
+        "package.json has exports field mapping subpath to src files (e.g. ./types, ./constants, ./validation)",
+        "bun x ultracite check passes for packages/spec",
+        "bunx tsc --noEmit -p packages/spec/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "ORPC-1",
+      "title": "Scaffold + implement @opentools/orpc",
+      "priority": 2,
+      "depends": ["SPEC-1"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "packages/orpc/package.json exists with name @opentools/orpc, type: module, peerDeps: @orpc/server @orpc/openapi, dep on @opentools/spec workspace:*",
+        "packages/orpc/tsconfig.json extends @workspace/typescript-config/base.json",
+        "packages/orpc/src/metadata.ts exports xlm() that returns { 'x-llm': XLlmOperation }",
+        "packages/orpc/src/spec-enhancer.ts exports withXLlm(spec, opts) that injects root x-llm into OpenAPI doc",
+        "packages/orpc/src/discovery.ts exports createDiscoveryResponse() returning a Response with LlmDiscovery JSON",
+        "package.json has exports field mapping subpath to src files (./metadata, ./spec-enhancer, ./discovery)",
+        "bun x ultracite check passes for packages/orpc",
+        "bunx tsc --noEmit -p packages/orpc/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "AISDK-1",
+      "title": "ai-sdk: discovery + spec-parser",
+      "priority": 3,
+      "depends": ["SPEC-1"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "packages/ai-sdk/package.json exists with name @opentools/ai-sdk, type: module, deps: @opentools/spec workspace:*",
+        "packages/ai-sdk/tsconfig.json extends @workspace/typescript-config/base.json",
+        "packages/ai-sdk/src/discovery.ts exports discoverLlm(baseUrl) that fetches /.well-known/llm.json and returns LlmDiscovery",
+        "packages/ai-sdk/src/spec-parser.ts exports parseSpec(specUrl) that fetches OpenAPI spec and returns { root: XLlmRoot, operations: ParsedOperation[] }",
+        "parseSpec extracts x-llm root, iterates paths/methods, builds ParsedOperation with operationId, method, path, summary, inputSchema, xlm",
+        "bun x ultracite check passes for packages/ai-sdk",
+        "bunx tsc --noEmit -p packages/ai-sdk/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "AISDK-2",
+      "title": "ai-sdk tool-generator + client entry",
+      "priority": 4,
+      "depends": ["AISDK-1"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "packages/ai-sdk/src/tool-generator.ts exports operationsToTools(operations, opts) returning { tools, metadata }",
+        "Uses AI SDK tool() + jsonSchema() — passes raw JSON Schema, no Zod conversion",
+        "description = summary + newline + hint (if hint exists)",
+        "needsApproval derived from resolveApproval()",
+        "execute = HTTP fetch with path param substitution, query for GET, JSON body for POST/PATCH/DELETE",
+        "packages/ai-sdk/src/client.ts exports createToolsFromUrl(baseUrl, opts) composing discovery + parseSpec + operationsToTools",
+        "opts includes: headers, namespace (prefix tool names as namespace_operationId)",
+        "package.json exports: ./client, ./discovery, ./spec-parser, ./tool-generator",
+        "dep on ai@^4 added to package.json",
+        "bun x ultracite check passes for packages/ai-sdk",
+        "bunx tsc --noEmit -p packages/ai-sdk/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "TASKS-1",
+      "title": "Scaffold apps/tasks: Next.js + schemas + store",
+      "priority": 5,
+      "depends": ["ORPC-1"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/tasks/package.json exists with deps: @orpc/server, @orpc/openapi, @orpc/zod, zod, @workspace/ui, @opentools/orpc workspace:*, next, react, react-dom",
+        "apps/tasks/next.config.ts mirrors apps/web pattern (transpilePackages, reactCompiler, typedRoutes)",
+        "apps/tasks/tsconfig.json extends @workspace/typescript-config/nextjs.json with paths for @/* and @workspace/ui/*",
+        "apps/tasks/app/layout.tsx exists with basic HTML structure",
+        "apps/tasks/lib/schemas.ts exports Zod schemas: Task, CreateTaskInput, UpdateTaskInput with fields: id, name, description?, dueDate?, status (todo|in-progress|done), createdAt",
+        "apps/tasks/lib/store.ts exports in-memory Map<string, Task> with 3 pre-seeded tasks and CRUD helpers",
+        "bun install succeeds with no errors",
+        "bun x ultracite check passes for apps/tasks",
+        "bunx tsc --noEmit -p apps/tasks/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "TASKS-2",
+      "title": "oRPC router with 5 procedures + x-llm",
+      "priority": 6,
+      "depends": ["TASKS-1"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/tasks/lib/router.ts exports oRPC router with 5 procedures: listTasks, getTask, createTask, updateTask, deleteTask",
+        "Each procedure has .route() with method, path, and spec callback using xlm() from @opentools/orpc/metadata",
+        "listTasks: GET /tasks, auto approval",
+        "getTask: GET /tasks/{id}, auto approval",
+        "createTask: POST /tasks, per-call approval",
+        "updateTask: PATCH /tasks/{id}, per-call approval",
+        "deleteTask: DELETE /tasks/{id}, per-call approval, destructive: true",
+        "All procedures use Zod schemas from lib/schemas.ts for input/output",
+        "bun x ultracite check passes for apps/tasks",
+        "bunx tsc --noEmit -p apps/tasks/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "TASKS-3",
+      "title": "API routes: catch-all, openapi.json, well-known",
+      "priority": 7,
+      "depends": ["TASKS-2"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/tasks/app/api/[...rest]/route.ts exports GET, POST, PATCH, DELETE handlers using oRPC OpenAPI handler",
+        "apps/tasks/app/openapi.json/route.ts exports GET that generates OpenAPI spec with withXLlm() injecting root x-llm metadata",
+        "apps/tasks/app/.well-known/llm.json/route.ts exports GET returning createDiscoveryResponse({ openapiPath: '/openapi.json', auth: 'api-key' })",
+        "bun x ultracite check passes for apps/tasks",
+        "bunx tsc --noEmit -p apps/tasks/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "TASKS-4",
+      "title": "Tasks web UI components",
+      "priority": 8,
+      "depends": ["TASKS-3"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/tasks/app/page.tsx renders task list UI fetching from /api/tasks",
+        "apps/tasks/components/providers.tsx exists with ThemeProvider or minimal providers",
+        "UI uses shadcn components from @workspace/ui (Card, Badge, Button at minimum)",
+        "Tasks displayed with name, status badge, description, due date",
+        "dev server starts on port 3001 (configured in package.json dev script or next.config.ts)",
+        "bun x ultracite check passes for apps/tasks",
+        "bunx tsc --noEmit -p apps/tasks/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "CHAT-1",
+      "title": "Scaffold apps/chat: Next.js + connections + deps",
+      "priority": 9,
+      "depends": ["AISDK-2"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/chat/package.json exists with deps: ai, @ai-sdk/anthropic, @ai-sdk/react, @opentools/ai-sdk workspace:*, @workspace/ui, next, react, react-dom",
+        "apps/chat/next.config.ts mirrors apps/web pattern",
+        "apps/chat/tsconfig.json extends @workspace/typescript-config/nextjs.json",
+        "apps/chat/app/layout.tsx exists with basic HTML structure",
+        "apps/chat/lib/connections.ts exports in-memory Map<string, Connection> and CRUD helpers (Connection = { id, baseUrl, apiKey, name })",
+        "bun install succeeds",
+        "bun x ultracite check passes for apps/chat",
+        "bunx tsc --noEmit -p apps/chat/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "CHAT-2",
+      "title": "Chat API route + settings page",
+      "priority": 10,
+      "depends": ["CHAT-1"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/chat/app/api/chat/route.ts exports POST handler using streamText with anthropic model and tools from connections",
+        "apps/chat/lib/tools.ts exports loadAllTools(connections) using createToolsFromUrl from @opentools/ai-sdk/client",
+        "apps/chat/app/settings/page.tsx renders connection management UI (add URL + API key, list connections, disconnect)",
+        "apps/chat/app/api/connections/route.ts exports GET and POST for connection CRUD",
+        "dev server configured for port 3002",
+        "bun x ultracite check passes for apps/chat",
+        "bunx tsc --noEmit -p apps/chat/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "CHAT-3",
+      "title": "Chat UI: messages + tool approval",
+      "priority": 11,
+      "depends": ["CHAT-2"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "apps/chat/app/page.tsx renders chat interface",
+        "apps/chat/components/chat-interface.tsx uses useChat hook with message rendering",
+        "apps/chat/components/tool-approval.tsx shows approve/deny UI for per-call tools with destructive warnings",
+        "Tool approval uses addToolApprovalResponse from AI SDK",
+        "Messages render tool calls and results inline",
+        "bun x ultracite check passes for apps/chat",
+        "bunx tsc --noEmit -p apps/chat/tsconfig.json passes"
+      ]
+    },
+    {
+      "id": "INTEG-1",
+      "title": "Full build verification",
+      "priority": 12,
+      "depends": ["TASKS-4", "CHAT-3"],
+      "passes": false,
+      "attempts": 0,
+      "acceptance": [
+        "bun install succeeds with no errors",
+        "bunx tsc --noEmit -p packages/spec/tsconfig.json passes",
+        "bunx tsc --noEmit -p packages/orpc/tsconfig.json passes",
+        "bunx tsc --noEmit -p packages/ai-sdk/tsconfig.json passes",
+        "bunx tsc --noEmit -p apps/tasks/tsconfig.json passes",
+        "bunx tsc --noEmit -p apps/chat/tsconfig.json passes",
+        "bun x ultracite check passes for all packages and apps",
+        "bun run build completes without errors for all packages"
+      ]
+    }
+  ]
+}
