@@ -27,8 +27,57 @@ interface OpenApiOperation {
 
 interface OpenApiSpec {
   paths?: Record<string, Record<string, OpenApiOperation>>;
+  servers?: Array<{ url: string }>;
   "x-llm"?: unknown;
 }
+
+const TRAILING_SLASH = /\/$/;
+
+/** Extracts the base path from the first OpenAPI server entry */
+const getServerBasePath = (servers?: Array<{ url: string }>): string => {
+  const raw = servers?.[0]?.url;
+  if (!raw) {
+    return "";
+  }
+  if (raw.startsWith("/")) {
+    return raw.replace(TRAILING_SLASH, "");
+  }
+  try {
+    return new URL(raw).pathname.replace(TRAILING_SLASH, "");
+  } catch {
+    return "";
+  }
+};
+
+/** Adds missing `type` to enum properties (Gemini requires `type: "string"` alongside `enum`) */
+const addEnumTypes = (
+  schema: Record<string, unknown>
+): Record<string, unknown> => {
+  if (
+    Array.isArray(schema.enum) &&
+    schema.enum.every((v) => typeof v === "string") &&
+    !schema.type
+  ) {
+    return { ...schema, type: "string" };
+  }
+  if (
+    schema.type === "object" &&
+    schema.properties &&
+    typeof schema.properties === "object"
+  ) {
+    const fixed: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(
+      schema.properties as Record<string, unknown>
+    )) {
+      fixed[key] =
+        value && typeof value === "object" && !Array.isArray(value)
+          ? addEnumTypes(value as Record<string, unknown>)
+          : value;
+    }
+    return { ...schema, properties: fixed };
+  }
+  return schema;
+};
 
 /** Collects properties and required fields from operation parameters */
 const collectParams = (params: NonNullable<OpenApiOperation["parameters"]>) => {
@@ -133,8 +182,9 @@ const parseOperation = (
   if (xlm?.enabled === false) {
     return undefined;
   }
+  const rawSchema = extractInputSchema(op, method);
   return {
-    inputSchema: extractInputSchema(op, method),
+    inputSchema: rawSchema ? addEnumTypes(rawSchema) : undefined,
     method: method.toUpperCase(),
     operationId: op.operationId,
     path,
@@ -155,9 +205,11 @@ export const parseSpec = async (
   }
   const spec = (await response.json()) as OpenApiSpec;
   const root = extractRoot(spec);
+  const serverBasePath = getServerBasePath(spec.servers);
   const operations: ParsedOperation[] = [];
 
-  for (const [path, methods] of Object.entries(spec.paths ?? {})) {
+  for (const [rawPath, methods] of Object.entries(spec.paths ?? {})) {
+    const path = `${serverBasePath}${rawPath}`;
     for (const [method, op] of Object.entries(methods)) {
       const parsed = parseOperation(path, method, op);
       if (parsed) {

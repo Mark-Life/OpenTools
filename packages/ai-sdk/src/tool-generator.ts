@@ -113,13 +113,14 @@ export const operationsToTools = (
     const needsApproval = approval === "per-call";
 
     const description = buildDescription(op);
-    const parameters = op.inputSchema
+    const inputSchema = op.inputSchema
       ? jsonSchema(op.inputSchema)
       : jsonSchema({ type: "object", properties: {} });
 
     tools[name] = tool({
       description,
-      parameters,
+      inputSchema,
+      needsApproval,
       execute: createExecute(op, opts),
     });
 

@@ -10,6 +10,7 @@ const generator = new OpenAPIGenerator({
 export const GET = async () => {
   const rawSpec = await generator.generate(router, {
     info: { title: "TaskTracker", version: "1.0.0" },
+    servers: [{ url: "/api" }],
   });
   const spec = withXLlm(rawSpec, {
     name: "TaskTracker",

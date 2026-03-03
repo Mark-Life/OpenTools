@@ -36,7 +36,7 @@ const createTask = os
     method: "POST",
     path: "/tasks",
     summary: "Create a new task",
-    spec: (s) => ({ ...s, ...xlm({ approval: "per-call" }) }),
+    spec: (s) => ({ ...s, ...xlm({ approval: "auto" }) }),
   })
   .input(CreateTaskInput)
   .output(Task)
