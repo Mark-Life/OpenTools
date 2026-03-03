@@ -186,8 +186,8 @@
       "title": "Chat UI: messages + tool approval",
       "priority": 11,
       "depends": ["CHAT-2"],
-      "passes": false,
-      "attempts": 0,
+      "passes": true,
+      "attempts": 2,
       "acceptance": [
         "apps/chat/app/page.tsx renders chat interface",
         "apps/chat/components/chat-interface.tsx uses useChat hook with message rendering",

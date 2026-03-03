@@ -87,3 +87,12 @@
   - `app/api/connections/route.ts`: GET lists, POST creates (delegates to `lib/connections.ts`)
   - `app/settings/page.tsx`: client component with connect form (name, baseUrl, apiKey) + connection list with disconnect
   - Biome: sorts JSX attributes alphabetically; use `!(a && b)` not `!a || !b` for simplified logic
+
+- CHAT-3: Chat UI with messages + tool approval
+  - `app/page.tsx`: renders `ChatInterface` component (server component importing client component)
+  - `components/chat-interface.tsx`: uses `useChat` from `@ai-sdk/react` with message parts rendering
+  - `components/tool-approval.tsx`: approve/deny UI for per-call tools, destructive warnings based on tool name
+  - `UIMessage` and `ToolInvocation` types exported from `ai` package (re-exported from `@ai-sdk/ui-utils`)
+  - `addToolResult` on useChat is the approval mechanism — passes `{ approved: true }` or `{ approved: false, error }` as tool result
+  - Message parts API: iterate `message.parts` for `text`, `tool-invocation` types; `toolInvocation.state` is `partial-call`, `call`, or `result`
+  - Biome auto-sorts imports: `@ai-sdk/*` before `@workspace/*` before `ai` before relative
