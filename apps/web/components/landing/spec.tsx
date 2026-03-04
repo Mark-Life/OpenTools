@@ -1,17 +1,9 @@
-"use client";
-
 import {
   Card,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@workspace/ui/components/tabs";
 import {
   AlertTriangle,
   CheckCircle,
@@ -66,12 +58,9 @@ export function Spec() {
         OpenAPI extensions that give LLMs the context they need. Builds on top
         of OpenAPI — no separate spec to learn.
       </p>
-      <Tabs className="mb-8" defaultValue="root">
-        <TabsList className="mx-auto">
-          <TabsTrigger value="root">Root Level</TabsTrigger>
-          <TabsTrigger value="operation">Operation Level</TabsTrigger>
-        </TabsList>
-        <TabsContent value="root">
+      <div className="mb-8 space-y-4">
+        <div>
+          <p className="mb-2 font-medium text-sm">Root Level</p>
           <pre className="overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm">
             {`x-llm:
   version: "0.1"
@@ -79,8 +68,9 @@ export function Spec() {
   description: "Save, organize, and discover recipes"
   defaultApproval: "per-call"`}
           </pre>
-        </TabsContent>
-        <TabsContent value="operation">
+        </div>
+        <div>
+          <p className="mb-2 font-medium text-sm">Operation Level</p>
           <pre className="overflow-x-auto rounded-lg bg-muted p-4 font-mono text-sm">
             {`x-llm:
   enabled: true                    # expose this to LLMs
@@ -91,8 +81,8 @@ export function Spec() {
   hint: string                     # when to use this (richer than summary)
   costIndicator: "free" | "credits" | "paid"`}
           </pre>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {fields.map((f) => (
           <Card key={f.name} size="sm">

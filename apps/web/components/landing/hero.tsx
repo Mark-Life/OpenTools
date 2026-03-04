@@ -37,12 +37,17 @@ export function Hero() {
         <Card className="mt-4 w-full max-w-lg text-left">
           <CardContent>
             <pre className="whitespace-pre-wrap font-mono text-muted-foreground text-sm">
-              {`User: "Create a task called 'Buy groceries' due tomorrow"
+              {`User: "Add 'Buy groceries' to my Todoist, due tomorrow"
 
-> Chat app already connected to task tracker via URL
-> LLM sees auto-discovered tools from the app's OpenAPI spec
-> LLM calls createTask tool
-> User approves (per-call policy) → task created`}
+1. Discovery — fetches todoist.com/.well-known/llm.json
+   → finds OpenAPI spec with x-llm extensions
+   → auto-generates tools: createTask, listTasks, ...
+
+2. Auth — OAuth2 via CIMD (zero-registration)
+   → agent authenticates as the user, no API keys
+
+3. Execution — calls createTask, user approves
+   → task created in Todoist on behalf of the user`}
             </pre>
           </CardContent>
         </Card>
