@@ -1,15 +1,21 @@
-import { Button } from "@workspace/ui/components/button";
+import { Approval } from "@/components/landing/approval";
+import { Comparison } from "@/components/landing/comparison";
+import { Footer } from "@/components/landing/footer";
+import { Hero } from "@/components/landing/hero";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { Problem } from "@/components/landing/problem";
+import { Spec } from "@/components/landing/spec";
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh items-center justify-center">
-      <div className="flex flex-col items-center justify-center gap-4">
-        <h1 className="font-bold text-2xl">Hello World</h1>
-        <div className="flex gap-2">
-          <Button>Button</Button>
-          <Button variant="outline">Outline</Button>
-        </div>
-      </div>
-    </div>
+    <main className="mx-auto max-w-4xl px-4">
+      <Hero />
+      <Problem />
+      <HowItWorks />
+      <Spec />
+      <Approval />
+      <Comparison />
+      <Footer />
+    </main>
   );
 }
