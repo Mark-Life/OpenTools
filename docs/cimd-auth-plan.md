@@ -134,65 +134,78 @@ The tasks app needs to become an OAuth2 AS that supports CIMD. Options:
 - Simpler for demo, full control
 - Not production-grade but demonstrates the flow
 
-**Recommendation**: Option C for demo (minimal custom), with notes on Option B for production.
+**Decision: Option B — WorkOS AuthKit**
 
-### 3. Tasks App — AS Implementation Requirements
+Since OpenTools apps will be deployed publicly, a real auth provider is the right choice. A custom minimal AS would simulate the protocol but not demonstrate real-world usage. Developers building on the OpenTools standard need to see how to integrate with a production auth provider.
 
+### 3. Tasks App — WorkOS AuthKit Integration
+
+With WorkOS as the Authorization Server, the tasks app is a **resource server only**. WorkOS handles all OAuth2/CIMD complexity (authorization, consent, token issuance, CIMD validation, PKCE).
+
+#### What WorkOS handles (we don't build):
+- OAuth2 authorization endpoint (`/oauth2/authorize`)
+- Token endpoint (`/oauth2/token`)
+- User login & consent screens
+- CIMD document fetching & validation
+- PKCE support
+- JWT issuance (access + refresh tokens)
+- JWKS endpoint for token verification
+
+#### What the tasks app implements:
+
+**Endpoints:**
 ```
-Endpoints:
-  GET  /.well-known/oauth-authorization-server  → AS metadata
-  GET  /.well-known/oauth-protected-resource     → resource metadata (optional)
-  GET  /oauth/authorize                          → authorization page
-  POST /oauth/token                              → token exchange
-  POST /oauth/revoke                             → token revocation (optional)
+GET  /.well-known/oauth-protected-resource      → resource metadata (points to WorkOS)
+GET  /.well-known/oauth-authorization-server     → proxy WorkOS AS metadata
 ```
 
-AS metadata response:
+**Protected Resource Metadata:**
 ```json
 {
-  "issuer": "https://tasks.opentools.dev",
-  "authorization_endpoint": "https://tasks.opentools.dev/oauth/authorize",
-  "token_endpoint": "https://tasks.opentools.dev/oauth/token",
-  "response_types_supported": ["code"],
-  "grant_types_supported": ["authorization_code", "refresh_token"],
-  "code_challenge_methods_supported": ["S256"],
-  "client_id_metadata_document_supported": true,
-  "scopes_supported": ["tasks:read", "tasks:write", "tasks:delete"]
+  "resource": "https://tasks.opentools.dev",
+  "authorization_servers": ["https://<authkit_domain>"],
+  "bearer_methods_supported": ["header"]
 }
 ```
 
-CIMD validation logic (on authorize request):
-1. Check if `client_id` is a URL (starts with `https://`)
-2. Fetch the URL — **no redirects**, HTTPS only, timeout 5s, max 5KB
-3. Parse JSON, validate `client_id` field matches URL exactly
-4. Validate `redirect_uri` is in `redirect_uris` array (exact match)
-5. Block private/reserved IPs (SSRF protection)
-6. Cache per HTTP cache headers
-
-PKCE validation:
-1. Store `code_challenge` + `code_challenge_method` with authorization code
-2. On token exchange, verify `code_verifier` produces matching challenge
-
-Token storage (in-memory for demo):
+**AS Metadata Proxy** — fetches and forwards WorkOS's own metadata:
 ```ts
-type AuthCode = {
-  code: string
-  clientId: string
-  redirectUri: string
-  codeChallenge: string
-  userId: string
-  scopes: string[]
-  expiresAt: number
-}
-
-type AccessToken = {
-  token: string
-  clientId: string
-  userId: string
-  scopes: string[]
-  expiresAt: number
-}
+// GET /.well-known/oauth-authorization-server
+const response = await fetch('https://<authkit_domain>/.well-known/oauth-authorization-server')
+const metadata = await response.json()
+return Response.json(metadata)
 ```
+
+**Bearer Token Middleware** — verify JWTs issued by WorkOS using `jose`:
+```ts
+import { jwtVerify, createRemoteJWKSet } from 'jose'
+
+const JWKS = createRemoteJWKSet(
+  new URL('https://<authkit_domain>/oauth2/jwks')
+)
+
+const WWW_AUTHENTICATE_HEADER = [
+  'Bearer error="unauthorized"',
+  'error_description="Authorization needed"',
+  'resource_metadata="https://tasks.opentools.dev/.well-known/oauth-protected-resource"',
+].join(', ')
+
+// On 401: return WWW-Authenticate header with resource_metadata URL
+// This enables clients to auto-discover the authorization server
+
+// On valid token:
+const { payload } = await jwtVerify(token, JWKS, {
+  issuer: 'https://<authkit_domain>',
+})
+// payload.sub = user ID, use for authorization
+```
+
+#### WorkOS Dashboard Setup:
+1. Create AuthKit project
+2. Navigate to Connect → Configuration
+3. Enable Client ID Metadata Document (CIMD)
+4. Optionally enable Dynamic Client Registration (DCR) for backward compat
+5. Configure allowed redirect URIs, scopes
 
 ### 4. Chat App — OAuth2 Client with CIMD
 
@@ -270,69 +283,73 @@ type LlmDiscovery = {
 
 ## Security Considerations
 
-### SSRF Protection (Tasks App AS)
-When fetching CIMD documents:
-- Block private IPs: `127.0.0.0/8`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `::1`, `fc00::/7`
-- HTTPS only
-- No redirect following
-- 5-second timeout
-- 5KB max response size
-- DNS rebinding protection (resolve DNS first, check IP, then fetch)
+### CIMD Validation (handled by WorkOS)
+WorkOS handles CIMD document fetching and validation, including:
+- SSRF protection
+- HTTPS enforcement
+- Document size limits
+- `client_id` ↔ URL matching
+- `redirect_uri` allowlist validation
 
-### Token Security
-- Short-lived access tokens (15 min)
-- Refresh token rotation
-- Scope enforcement on every API call
+### Token Security (handled by WorkOS)
+- JWT access tokens verified via JWKS
+- Refresh token support
+- Scope enforcement on every API call (tasks app middleware)
 - Tokens bound to specific client_id
 
-### Consent Screen
-- Display client_name and hostname from CIMD
-- Show requested scopes in human-readable form
-- Warn on localhost redirect URIs
+### Tasks App Responsibilities
+- Verify JWT signature + issuer via WorkOS JWKS on every request
+- Return proper `WWW-Authenticate` header on 401 (with `resource_metadata` URL for auto-discovery)
+- Enforce scopes per API route
 
 ---
 
 ## Implementation Order
 
 ```
-1. @opentools/spec        — add auth types to LlmDiscovery
-2. apps/tasks/oauth       — minimal OAuth2 AS with CIMD support
-   - AS metadata endpoint
-   - Authorize endpoint + consent page
-   - Token endpoint with PKCE
-   - CIMD fetch + validate
-   - SSRF protection
-   - In-memory code/token storage
-3. apps/tasks/.well-known — update llm.json to declare oauth2
-4. apps/tasks/middleware   — token validation on API routes
-5. apps/chat/cimd         — host CIMD document
-6. apps/chat/oauth        — OAuth2 client flow
+1. WorkOS setup           — create AuthKit project, enable CIMD, configure dashboard
+2. @opentools/spec        — add auth types to LlmDiscovery
+3. apps/tasks/.well-known — add oauth-protected-resource & oauth-authorization-server endpoints
+4. apps/tasks/.well-known — update llm.json to declare oauth2
+5. apps/tasks/middleware   — bearer token validation via jose + WorkOS JWKS
+6. apps/chat/cimd         — host CIMD document (/.well-known/oauth-client.json)
+7. apps/chat/oauth        — OAuth2 client flow
    - Discover AS from llm.json
    - Initiate authorize redirect
    - Handle callback
    - Token exchange + storage
-7. apps/chat/settings     — update UI for OAuth connect flow
-8. apps/chat/tools        — pass OAuth token to tool execution
-9. @opentools/ai-sdk      — return auth requirements from discovery
+8. apps/chat/settings     — update UI for OAuth connect flow
+9. apps/chat/tools        — pass OAuth token to tool execution
+10. @opentools/ai-sdk     — return auth requirements from discovery
 ```
 
 ---
 
+## Decisions Made
+
+1. **Auth provider** — WorkOS AuthKit. Real production-grade AS with CIMD support. No custom OAuth AS needed.
+
+2. **Discovery auth format** — Object format `{ type: "oauth2", ... }`. More extensible, we control both sides.
+
+3. **User identity** — WorkOS handles user accounts and consent. Real users, real sessions.
+
+4. **Token persistence** — Chat side: cookies or localStorage. Tasks side: stateless JWT validation (no token storage needed, WorkOS issues JWTs verified via JWKS).
+
+5. **Scope granularity** — `tasks:read`, `tasks:write`, `tasks:delete`. Maps to `x-llm` approval levels.
+
+6. **Backward compatibility** — Yes, keep API key auth alongside OAuth2 for dev/testing.
+
+7. **HTTPS for local dev** — Allow `http://localhost` as exception (matches MCP spec behavior). Production requires HTTPS.
+
 ## Open Questions
 
-1. **Discovery auth format** — keep `auth: "api-key"` string format for simplicity, or switch to object `{ type: "oauth2", ... }`? Object is more extensible.
+1. **WorkOS pricing** — free tier limits? Sufficient for demo + early adopters?
 
-2. **User identity on tasks app** — for demo, do we need real user accounts? Or is "any valid OAuth token = authorized"? Minimal: single demo user, consent is just "approve this app".
+2. **Standalone Connect vs hosted login** — WorkOS supports "Standalone Connect" where AuthKit redirects to your own login page. Do we want WorkOS-hosted login (simpler) or redirect to tasks app's own login (more control)?
 
-3. **Token persistence** — in-memory is fine for demo but tokens lost on restart. Use cookies/localStorage on chat side? Or add a simple DB (SQLite/Turso)?
+3. **Chat app deployment model** — Vercel (serverless) or self-hosted? Affects how OAuth state (PKCE verifier, pending connections) is stored between redirect and callback.
 
-4. **Scope granularity** — `tasks:read`, `tasks:write`, `tasks:delete`? Or simpler `read`, `write`? Map to x-llm approval levels?
-
-5. **Backward compatibility** — keep API key auth working alongside OAuth2? Useful for development/testing.
-
-6. **HTTPS requirement** — CIMD requires HTTPS. For local dev, do we relax this (allow http://localhost) or use self-signed certs / tunnels (ngrok, Cloudflare Tunnel)?
-
-7. **Custom AS vs library** — Build minimal OAuth AS from scratch (simpler, educational) or wait for Better Auth CIMD support?
+4. **Chat app user API keys** — users need to provide their own LLM API key (to avoid spending our credits). How does this interact with the OAuth flow? Stored separately from connection tokens.
 
 ---
 
@@ -342,6 +359,8 @@ When fetching CIMD documents:
 - [MCP Auth Spec (Nov 2025 draft)](https://modelcontextprotocol.io/specification/draft/basic/authorization)
 - [Aaron Parecki: MCP Auth Update Analysis](https://aaronparecki.com/2025/11/25/1/mcp-authorization-spec-update)
 - [WorkOS: CIMD vs DCR](https://workos.com/blog/mcp-client-registration-cimd-vs-dcr)
+- [WorkOS AuthKit MCP Docs](https://workos.com/docs/authkit/mcp) — primary integration guide
+- [WorkOS AuthKit MCP + CIMD](https://workos.com/docs/authkit/mcp#enabling-client-id-metadata-document-cimd)
 - [Better Auth MCP Plugin](https://better-auth.com/docs/plugins/mcp)
 - [Better Auth CIMD Issue #7184](https://github.com/better-auth/better-auth/issues/7184)
 - [RFC 7636: PKCE](https://datatracker.ietf.org/doc/html/rfc7636)
