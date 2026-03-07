@@ -341,15 +341,17 @@ WorkOS handles CIMD document fetching and validation, including:
 
 7. **HTTPS for local dev** — Allow `http://localhost` as exception (matches MCP spec behavior). Production requires HTTPS.
 
-## Open Questions
+8. **WorkOS pricing** — 1M MAU free, no credit card needed. More than sufficient.
 
-1. **WorkOS pricing** — free tier limits? Sufficient for demo + early adopters?
+9. **Login flow** — WorkOS-hosted login (simpler). Can switch to Standalone Connect later if needed.
 
-2. **Standalone Connect vs hosted login** — WorkOS supports "Standalone Connect" where AuthKit redirects to your own login page. Do we want WorkOS-hosted login (simpler) or redirect to tasks app's own login (more control)?
+10. **Chat app deployment** — Vercel (serverless). OAuth state (PKCE verifier, state param) stored in encrypted cookies between redirect and callback.
 
-3. **Chat app deployment model** — Vercel (serverless) or self-hosted? Affects how OAuth state (PKCE verifier, pending connections) is stored between redirect and callback.
-
-4. **Chat app user API keys** — users need to provide their own LLM API key (to avoid spending our credits). How does this interact with the OAuth flow? Stored separately from connection tokens.
+11. **User LLM API keys** — stored in localStorage. Orthogonal to OAuth (OAuth tokens are per-connection to tool providers, LLM key is for the chat app itself). Security mitigations:
+    - Show warning: "Use a temporary or scoped API key for testing. Delete it after."
+    - Provide "Clear API key" button in settings UI
+    - Key only sent directly to LLM provider (never logged, never sent elsewhere)
+    - XSS is the main risk vector — acceptable for demo given no third-party scripts loaded
 
 ---
 
