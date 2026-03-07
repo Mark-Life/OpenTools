@@ -353,6 +353,57 @@ WorkOS handles CIMD document fetching and validation, including:
     - Key only sent directly to LLM provider (never logged, never sent elsewhere)
     - XSS is the main risk vector — acceptable for demo given no third-party scripts loaded
 
+12. **Chat app has no user accounts** — fully stateless server. Multi-user isolation via client-side state, not server sessions.
+
+---
+
+## Chat App Architecture — Stateless Server, Client-Side State
+
+The chat app has **no server-side state and no user accounts**. All per-user data lives in the browser (localStorage). The server is a pure stateless proxy.
+
+### What lives in the browser (localStorage):
+- **LLM API key** (Gemini/OpenAI key the user provides)
+- **Connections** array: `[{ id, name, baseUrl, auth: { accessToken, refreshToken, ... } }]`
+- **OAuth tokens** per connection (received after OAuth flow completes)
+
+### What the server does (stateless):
+Each `POST /api/chat` request receives everything it needs from the client:
+```
+Browser sends:
+  { messages, connections: [...with tokens], llmApiKey }
+
+Server:
+  1. Loads tools from each connection using provided tokens (server-side fetch, no CORS)
+  2. Calls LLM using provided API key
+  3. Streams response back
+  4. Holds no state — forgets everything after response
+```
+
+### Why server-side fetch (not browser fetch):
+- Tool execution = calling external APIs (e.g. `tasks.opentools.dev/api/tasks`)
+- Browser cannot do this due to CORS restrictions
+- Server acts as proxy: receives tokens from client, makes fetch calls, returns results
+- OAuth token exchange also happens server-side (callback route exchanges code for tokens, returns them to client for storage)
+
+### Multi-user isolation:
+- Two users on same deployment are fully isolated — each browser has its own localStorage
+- No shared state on server, no database, no sessions
+- Tradeoff: user loses everything on localStorage clear (acceptable for demo)
+
+### OAuth flow with stateless server:
+```
+1. User clicks "Connect" → browser stores PKCE verifier + state in localStorage
+2. Browser redirects to WorkOS authorize URL
+3. User authenticates + consents on WorkOS
+4. WorkOS redirects to /api/auth/callback?code=...&state=...
+5. Callback route (server) exchanges code for tokens (server-side fetch)
+6. Server returns tokens to browser (redirect with tokens in URL fragment or set in response)
+7. Browser stores tokens in localStorage with the connection
+8. Subsequent /api/chat requests include tokens from localStorage
+```
+
+Note: step 5 must be server-side because token exchange requires sending the code to WorkOS token endpoint, and the response contains tokens that shouldn't be exposed in browser network logs more than necessary.
+
 ---
 
 ## References
